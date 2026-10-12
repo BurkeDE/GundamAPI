@@ -1,4 +1,3 @@
-
 import requests
 
 while True:
@@ -21,28 +20,43 @@ while True:
             print(gundam["id"], "-", gundam["name"])
 
     elif choice == "2":
-        search = input("Enter Gundam name: ")
+        search = input("Enter Gundam name or part of the name: ").strip().lower()
 
         url = "https://gundam-api.pages.dev/api/gundams"
         response = requests.get(url)
         data = response.json()
 
-        found = False
+        matches = []
 
         for gundam in data["results"]:
-            if gundam["name"].lower() == search.lower():
-                print("\n===== GUNDAM INFORMATION =====")
-                print("Name:", gundam["name"])
-                print("ID:", gundam["id"])
-                print("Information:", gundam.get("header"))
-                print("Pilots:", gundam.get("pilots"))
-                print("Image:", gundam.get("imgUrl"))
-                print("Wiki:", gundam.get("wikiUrl"))
-                found = True
-                break
+            if search in gundam["name"].lower():
+                matches.append(gundam)
 
-        if not found:
-            print("Gundam not found. Enter the exact name.")
+        if matches:
+            print("\n===== MATCHING GUNDAMS =====")
+
+            for i, gundam in enumerate(matches, start=1):
+                print(i, "-", gundam["name"])
+
+            try:
+                selection = int(input("\nChoose a Gundam by number: "))
+
+                if 1 <= selection <= len(matches):
+                    gundam = matches[selection - 1]
+
+                    print("\n===== GUNDAM INFORMATION =====")
+                    print("Name:", gundam["name"])
+                    print("ID:", gundam["id"])
+                    print("Information:", gundam.get("header"))
+                    print("Pilots:", gundam.get("pilots"))
+                    print("Image:", gundam.get("imgUrl"))
+                    print("Wiki:", gundam.get("wikiUrl"))
+                else:
+                    print("Invalid selection.")
+            except ValueError:
+                print("Please enter a number.")
+        else:
+            print("No Gundams found matching that name.")
 
     elif choice == "3":
         print("Goodbye!")
