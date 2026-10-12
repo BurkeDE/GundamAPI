@@ -1,4 +1,12 @@
 import requests
+from urllib.parse import unquote
+
+def get_gundams(page):
+    url = "https://gundam-api.pages.dev/api/gundams"
+    response = requests.get(url, params={"page": page}, timeout=15)
+    response.raise_for_status()
+    return response.json()
+
 
 while True:
     print("\n===== GUNDAM EXPLORER =====")
@@ -9,54 +17,99 @@ while True:
     choice = input("Choose an option: ")
 
     if choice == "1":
-        url = "https://gundam-api.pages.dev/api/gundams"
-        response = requests.get(url)
-        data = response.json()
+        page = 1
 
-        print("\n===== GUNDAMS =====")
-        print("Total Gundams:", data["info"]["count"])
+        while True:
+            try:
+                data = get_gundams(page)
 
-        for gundam in data["results"]:
-            print(gundam["id"], "-", gundam["name"])
+                print("\n===== GUNDAMS =====")
+                print("Page:", page, "of", data["info"]["pages"])
+
+                for gundam in data["results"]:
+                    name = unquote(gundam["name"])
+                    print(gundam["id"], "-", name)
+
+                print("\nN - Next page")
+                print("P - Previous page")
+                print("M - Main menu")
+
+                option = input("Choose an option: ").lower()
+
+                if option == "n":
+                    if data["info"]["next"]:
+                        page += 1
+                    else:
+                        print("You are on the last page.")
+
+                elif option == "p":
+                    if page > 1:
+                        page -= 1
+                    else:
+                        print("You are already on the first page.")
+
+                elif option == "m":
+                    break
+
+                else:
+                    print("Invalid option.")
+
+            except (requests.RequestException, ValueError, KeyError) as error:
+                print("Could not load Gundams:", error)
+                break
 
     elif choice == "2":
-        search = input("Enter Gundam name or part of the name: ").strip().lower()
+        search = input(
+            "Enter Gundam name or part of the name: "
+        ).strip().lower()
 
-        url = "https://gundam-api.pages.dev/api/gundams"
-        response = requests.get(url)
-        data = response.json()
+        if not search:
+            print("Please enter a name.")
+            continue
 
-        matches = []
+        try:
+            data = get_gundams(1)
+            matches = []
 
-        for gundam in data["results"]:
-            if search in gundam["name"].lower():
-                matches.append(gundam)
+            for gundam in data["results"]:
+                name = unquote(gundam["name"])
 
-        if matches:
-            print("\n===== MATCHING GUNDAMS =====")
+                if search in name.lower():
+                    matches.append(gundam)
 
-            for i, gundam in enumerate(matches, start=1):
-                print(i, "-", gundam["name"])
+            if matches:
+                print("\n===== MATCHING GUNDAMS =====")
 
-            try:
-                selection = int(input("\nChoose a Gundam by number: "))
+                for i, gundam in enumerate(matches, start=1):
+                    print(i, "-", unquote(gundam["name"]))
 
-                if 1 <= selection <= len(matches):
-                    gundam = matches[selection - 1]
+                try:
+                    selection = int(
+                        input("\nChoose a Gundam by number: ")
+                    )
 
-                    print("\n===== GUNDAM INFORMATION =====")
-                    print("Name:", gundam["name"])
-                    print("ID:", gundam["id"])
-                    print("Information:", gundam.get("header"))
-                    print("Pilots:", gundam.get("pilots"))
-                    print("Image:", gundam.get("imgUrl"))
-                    print("Wiki:", gundam.get("wikiUrl"))
-                else:
-                    print("Invalid selection.")
-            except ValueError:
-                print("Please enter a number.")
-        else:
-            print("No Gundams found matching that name.")
+                    if 1 <= selection <= len(matches):
+                        gundam = matches[selection - 1]
+
+                        print("\n===== GUNDAM INFORMATION =====")
+                        print("Name:", unquote(gundam["name"]))
+                        print("ID:", gundam["id"])
+                        print("Information:", gundam.get("header"))
+                        print("Pilots:", gundam.get("pilots"))
+                        print("Image:", gundam.get("imgUrl"))
+                        print("Wiki:", gundam.get("wikiUrl"))
+
+                    else:
+                        print("Invalid selection.")
+
+                except ValueError:
+                    print("Please enter a number.")
+
+            else:
+                print("No matching Gundams found on the first page.")
+
+        except (requests.RequestException, ValueError, KeyError) as error:
+            print("Could not load Gundams:", error)
 
     elif choice == "3":
         print("Goodbye!")
